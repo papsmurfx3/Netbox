@@ -33,7 +33,7 @@ class NewVM(Script):
     platform = ObjectVar(model=Platform, required=False)
 
     interface_name = StringVar(default="eth0")
-    mac_address = StringVar(label="MAC address", required=False)
+   #mac_address = StringVar(label="MAC address", required=False)
 
     vcpus = IntegerVar(label="VCPUs", required=False)
     memory = IntegerVar(label="Memory (MB)", required=False)
