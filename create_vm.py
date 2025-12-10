@@ -63,7 +63,6 @@ class NewVM(Script):
         # 2) Create a VM interface
         vminterface = VMInterface(
             name=data["interface_name"],
-            mac_address=data["mac_address"],
             virtual_machine=vm,
         )
         vminterface.full_clean()
