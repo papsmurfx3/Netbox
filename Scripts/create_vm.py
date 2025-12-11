@@ -60,6 +60,11 @@ class NewVM(Script):
         vm.save()
         vm.tags.set(data["vm_tags"])
 
+        # NEW: store DNS name on the VM custom field as well
+        if data.get("dns_name"):
+            vm.custom_field_data["dns_name"] = data["dns_name"]
+            vm.save()
+
         # 2) Create a VM interface
         vminterface = VMInterface(
             name=data["interface_name"],
