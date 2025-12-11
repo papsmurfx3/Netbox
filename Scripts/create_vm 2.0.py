@@ -29,7 +29,7 @@ from virtualization.models import Cluster, VirtualMachine, VMInterface, VirtualD
 class NewVM(Script):
 
     class Meta:
-        name = "New VM"
+        name = "New VM v2"
         description = "Create a new VM with optional extra NICs, VLANs, and disks"
 
     #
