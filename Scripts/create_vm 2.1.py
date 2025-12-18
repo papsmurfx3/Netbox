@@ -1,16 +1,18 @@
 """
 NetBox Script: Create a new VM (documentation-first) with:
-- Next available IPv4 allocation from a selected Prefix
-- Optional VLAN assignment per NIC
+- IPv4 allocation: next available from a selected Prefix OR a selected IP Range
+- Optional VLAN assignment per NIC (access/untagged)
 - Optional extra NICs (up to 2)
 - Optional disks (up to 4) stored as VirtualDisk objects
 - Optional Domain + VM DNS Name stored as VM custom fields
 - IP DNS name stored on the IPAddress object
 
-Tested patterns for NetBox 4.x (NetBox Cloud).
+Designed for NetBox 4.x / NetBox Cloud.
 """
 
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
+
+from netaddr import IPAddress as NAddrIPAddress
 
 from dcim.models import DeviceRole, Platform
 from dcim.choices import InterfaceModeChoices
@@ -27,7 +29,7 @@ from extras.scripts import (
 )
 
 from ipam.choices import IPAddressStatusChoices
-from ipam.models import IPAddress, VRF, VLAN, Prefix
+from ipam.models import IPAddress, VRF, VLAN, Prefix, IPRange
 
 from tenancy.models import Tenant
 
@@ -37,27 +39,23 @@ from virtualization.models import Cluster, VirtualMachine, VMInterface, VirtualD
 
 class NewVM(Script):
     class Meta:
-        name = "New VM v2.1"
-        description = "Create a new VM with optional NICs/VLANs/disks and auto-allocate IPv4 from a prefix"
+        name = "New VMv2.1"
+        description = "Create a new VM with optional NICs/VLANs/disks and auto-allocate IPv4 from a Prefix or IP Range"
 
     #
     # Core VM fields
     #
     vm_name = StringVar(label="VM name")
 
-    # This is used in two places:
+    # Used in two places:
     # - Stored on the IPAddress object as dns_name
     # - Optionally stored on the VM as a custom field (dns_name)
     dns_name = StringVar(label="DNS name", required=False)
 
-    # Stored on the VM as a custom field (domain) if present
+    # Optionally stored on the VM as a custom field (domain)
     domain_name = StringVar(label="Domain", required=False)
 
-    vm_tags = MultiObjectVar(
-        model=Tag,
-        label="VM tags",
-        required=False,
-    )
+    vm_tags = MultiObjectVar(model=Tag, label="VM tags", required=False)
 
     role = ObjectVar(
         model=DeviceRole,
@@ -76,16 +74,30 @@ class NewVM(Script):
 
     tenant = ObjectVar(model=Tenant, required=False, label="Tenant")
     platform = ObjectVar(model=Platform, required=False, label="Platform / OS")
-
     vrf = ObjectVar(model=VRF, required=False, label="VRF (optional)")
 
     #
-    # IPv4 allocation (NEW)
+    # IPv4 allocation (Prefix OR Range)
     #
+    allocation_source = ChoiceVar(
+        choices=(
+            ("prefix", "Prefix (next available)"),
+            ("range", "IP Range (next available)"),
+        ),
+        default="prefix",
+        label="IPv4 allocation source",
+    )
+
     ipv4_prefix = ObjectVar(
         model=Prefix,
         label="IPv4 Prefix (allocate next available)",
-        required=True,
+        required=False,
+    )
+
+    ipv4_range = ObjectVar(
+        model=IPRange,
+        label="IPv4 Range (allocate next available)",
+        required=False,
     )
 
     #
@@ -135,34 +147,69 @@ class NewVM(Script):
 
     def run(self, data, commit):
 
-        # Helper to log and still support dry-run behavior
         def log_plan(msg: str):
+            # Keep job output readable while still supporting dry-run
             if commit:
                 self.log_info(msg)
             else:
                 self.log_info(f"[DRY-RUN] {msg}")
 
-        #
-        # Basic validations for prefix/vrf/vlan relationship (to avoid confusing results)
-        #
-        prefix = data["ipv4_prefix"]
         selected_vrf = data.get("vrf")
 
-        # Ensure VRF matches between selected Prefix and selected VRF
-        if prefix.vrf != selected_vrf:
-            raise RuntimeError(
-                f"Selected Prefix {prefix.prefix} is in VRF '{prefix.vrf}', "
-                f"but you selected VRF '{selected_vrf}'. These must match."
-            )
+        #
+        # Choose allocation object based on allocation_source
+        #
+        allocation_source = data["allocation_source"]
+        pfx = data.get("ipv4_prefix")
+        rng = data.get("ipv4_range")
 
-        # If you select a VLAN for the primary NIC and the Prefix has a VLAN, enforce match
-        # (Prefix.vlan can be null; in that case we don't enforce)
-        if data.get("interface_vlan") and prefix.vlan and data["interface_vlan"] != prefix.vlan:
-            raise RuntimeError(
-                f"Selected Prefix {prefix.prefix} is associated to VLAN '{prefix.vlan}', "
-                f"but you selected primary NIC VLAN '{data['interface_vlan']}'. "
-                f"Choose the matching VLAN or a different prefix."
-            )
+        if allocation_source == "prefix" and not pfx:
+            raise RuntimeError("IPv4 allocation source is Prefix, but no Prefix was selected.")
+        if allocation_source == "range" and not rng:
+            raise RuntimeError("IPv4 allocation source is IP Range, but no IP Range was selected.")
+
+        # VRF must match (or both None)
+        if allocation_source == "prefix":
+            if pfx.vrf != selected_vrf:
+                raise RuntimeError(
+                    f"Selected Prefix {pfx.prefix} is in VRF '{pfx.vrf}', but you selected VRF '{selected_vrf}'. "
+                    f"These must match."
+                )
+        else:
+            # range
+            if rng.vrf != selected_vrf:
+                raise RuntimeError(
+                    f"Selected IP Range {rng.start_address} - {rng.end_address} is in VRF '{rng.vrf}', "
+                    f"but you selected VRF '{selected_vrf}'. These must match."
+                )
+
+        #
+        # VLAN sanity checks (keeps your “must be within VLAN/subnet” intent consistent)
+        #
+        primary_vlan = data.get("interface_vlan")
+
+        # If user didn’t pick VLAN, but the allocation object has VLAN, auto-use it.
+        # (Only if those fields exist on your objects.)
+        if not primary_vlan:
+            if allocation_source == "prefix" and getattr(pfx, "vlan", None):
+                primary_vlan = pfx.vlan
+                log_plan(f"Primary NIC VLAN not selected; using Prefix VLAN: {primary_vlan}")
+            if allocation_source == "range" and getattr(rng, "vlan", None):
+                primary_vlan = rng.vlan
+                log_plan(f"Primary NIC VLAN not selected; using Range VLAN: {primary_vlan}")
+
+        # If both are set, enforce match when possible
+        if primary_vlan:
+            if allocation_source == "prefix" and getattr(pfx, "vlan", None) and pfx.vlan != primary_vlan:
+                raise RuntimeError(
+                    f"Selected Prefix {pfx.prefix} is associated with VLAN '{pfx.vlan}', "
+                    f"but you selected primary NIC VLAN '{primary_vlan}'. Choose a matching VLAN/prefix."
+                )
+            if allocation_source == "range" and getattr(rng, "vlan", None) and rng.vlan != primary_vlan:
+                raise RuntimeError(
+                    f"Selected Range {rng.start_address}-{rng.end_address} is associated with VLAN '{rng.vlan}', "
+                    f"but you selected primary NIC VLAN '{primary_vlan}'. Choose a matching VLAN/range."
+                )
 
         #
         # 1) Create VM
@@ -183,27 +230,31 @@ class NewVM(Script):
             vm.full_clean()
             vm.save()
             vm.tags.set(data.get("vm_tags") or [])
+
         log_plan(f"Created VM record: {vm.name} (cluster={data['cluster']})")
 
         #
-        # 2) Store VM custom fields (Domain + VM DNS Name) if they exist
+        # 2) Store VM custom fields (domain/dns_name) if those CFs exist
         #
-        # These require custom fields on VirtualMachine with Names:
-        # - domain
-        # - dns_name
         if commit:
-            changed_cf = False
-            if data.get("domain_name"):
-                vm.custom_field_data["domain"] = data["domain_name"]
-                changed_cf = True
-            if data.get("dns_name"):
-                vm.custom_field_data["dns_name"] = data["dns_name"]
-                changed_cf = True
-            if changed_cf:
-                # This can raise ValidationError if custom field Names do not exist
-                vm.full_clean()
-                vm.save()
-                log_plan("Updated VM custom fields (domain/dns_name).")
+            try:
+                changed_cf = False
+                if data.get("domain_name"):
+                    vm.custom_field_data["domain"] = data["domain_name"]
+                    changed_cf = True
+                if data.get("dns_name"):
+                    vm.custom_field_data["dns_name"] = data["dns_name"]
+                    changed_cf = True
+                if changed_cf:
+                    vm.full_clean()
+                    vm.save()
+                    log_plan("Updated VM custom fields (domain/dns_name).")
+            except ValidationError:
+                # If custom fields aren’t created, don’t fail the whole build
+                self.log_warning(
+                    "VM custom fields 'domain' and/or 'dns_name' are not defined on VirtualMachine. "
+                    "Skipping writing those custom fields."
+                )
 
         #
         # 3) Helper to create an interface with optional untagged VLAN
@@ -232,32 +283,64 @@ class NewVM(Script):
         #
         # Primary NIC
         #
-        primary_vlan = data.get("interface_vlan")
-
-        # If user did not pick a VLAN but the Prefix has a VLAN, auto-use it (nice quality-of-life)
-        if not primary_vlan and prefix.vlan:
-            primary_vlan = prefix.vlan
-            log_plan(f"Primary NIC VLAN not selected; using Prefix VLAN: {primary_vlan}")
-
         primary_iface = create_interface(data["interface_name"], primary_vlan)
 
         #
-        # 4) Allocate next available IPv4 from prefix and assign to primary interface
+        # 4) IPv4 allocation
         #
-        def allocate_next_ipv4_from_prefix(pfx: Prefix) -> str:
-            # NetBox Prefix.get_available_ips() yields available host IPs in the prefix
-            available = pfx.get_available_ips()
+        def allocate_next_ipv4_from_prefix(prefix: Prefix) -> str:
+            available = prefix.get_available_ips()
             try:
                 next_ip = next(iter(available))
             except StopIteration:
-                raise RuntimeError(f"No available IPv4 addresses remain in prefix {pfx.prefix}")
+                raise RuntimeError(f"No available IPv4 addresses remain in prefix {prefix.prefix}")
+            return f"{next_ip}/{prefix.prefix.prefixlen}"
 
-            # Use the prefix length on the IP (e.g. 10.0.0.5/23)
-            return f"{next_ip}/{pfx.prefix.prefixlen}"
+        def _extract_ip_and_mask(value):
+            """
+            NetBox range endpoints are typically stored with a mask (e.g. 10.1.2.10/24).
+            We normalize to (ip_as_string, prefixlen_int).
+            """
+            # value might be an IPNetwork-like object with .ip and .prefixlen
+            if hasattr(value, "ip") and hasattr(value, "prefixlen"):
+                return str(value.ip), int(value.prefixlen)
 
-        allocated_ipv4 = allocate_next_ipv4_from_prefix(prefix)
-        log_plan(f"Allocated next available IPv4 from {prefix.prefix}: {allocated_ipv4}")
+            # fallback: string like "10.1.2.10/24" or "10.1.2.10"
+            s = str(value)
+            if "/" in s:
+                ip, mask = s.split("/", 1)
+                return ip, int(mask)
+            return s, 32  # last-resort fallback
 
+        def allocate_next_ipv4_from_range(iprange: IPRange) -> str:
+            start_ip_s, mask = _extract_ip_and_mask(iprange.start_address)
+            end_ip_s, _mask2 = _extract_ip_and_mask(iprange.end_address)
+
+            start = NAddrIPAddress(start_ip_s)
+            end = NAddrIPAddress(end_ip_s)
+
+            ip = start
+            while ip <= end:
+                candidate = f"{ip}/{mask}"
+                # exists() is fast enough for typical ranges; if you have huge ranges, we can optimize
+                if not IPAddress.objects.filter(address=candidate, vrf=selected_vrf).exists():
+                    return candidate
+                ip = NAddrIPAddress(int(ip) + 1)
+
+            raise RuntimeError(
+                f"No available IPv4 addresses remain in range {iprange.start_address} - {iprange.end_address}"
+            )
+
+        if allocation_source == "prefix":
+            allocated_ipv4 = allocate_next_ipv4_from_prefix(pfx)
+            log_plan(f"Allocated next available IPv4 from Prefix {pfx.prefix}: {allocated_ipv4}")
+        else:
+            allocated_ipv4 = allocate_next_ipv4_from_range(rng)
+            log_plan(f"Allocated next available IPv4 from Range {rng.start_address}-{rng.end_address}: {allocated_ipv4}")
+
+        #
+        # 5) Create/assign IPAddress and set VM primary IPv4
+        #
         if commit:
             ip4 = IPAddress(
                 address=allocated_ipv4,
@@ -277,7 +360,7 @@ class NewVM(Script):
             log_plan(f"Created/assigned IP: {ip4.address} -> {vm.name}:{primary_iface.name}")
 
         #
-        # 5) Extra NICs (up to 2)
+        # 6) Extra NICs (up to 2)
         #
         extra_nics = data.get("extra_nics") or 0
 
@@ -289,7 +372,7 @@ class NewVM(Script):
             log_plan("extra_nics > 2 provided; only 2 extra NICs are supported by this script.")
 
         #
-        # 6) Virtual disks (up to 4)
+        # 7) Virtual disks (up to 4)
         #
         def create_disk(name, size_gb):
             if not size_gb:
@@ -318,7 +401,7 @@ class NewVM(Script):
         disks = [d for d in disks if d]
 
         #
-        # 7) Build Summary (job output "report")
+        # 8) Build Summary (job output "report")
         #
         self.log_info("---- Build Summary ----")
         self.log_info(f"VM: {data['vm_name']}")
@@ -330,21 +413,30 @@ class NewVM(Script):
         if data.get("dns_name"):
             self.log_info(f"DNS Name: {data['dns_name']}")
 
-        self.log_info(f"IPv4 Prefix: {prefix.prefix}")
+        if allocation_source == "prefix":
+            self.log_info(f"IPv4 allocation: Prefix {pfx.prefix}")
+        else:
+            self.log_info(f"IPv4 allocation: Range {rng.start_address} - {rng.end_address}")
+
         self.log_info(f"Allocated IPv4: {allocated_ipv4}")
 
         self.log_info("Interfaces (with VLAN if set):")
         self.log_info(f"  - {data['interface_name']}" + (f" (VLAN: {primary_vlan})" if primary_vlan else ""))
 
         if extra_nics >= 1 and data.get("nic2_name"):
-            self.log_info(f"  - {data.get('nic2_name')}" + (f" (VLAN: {data.get('nic2_vlan')})" if data.get("nic2_vlan") else ""))
+            self.log_info(
+                f"  - {data.get('nic2_name')}"
+                + (f" (VLAN: {data.get('nic2_vlan')})" if data.get("nic2_vlan") else "")
+            )
         if extra_nics >= 2 and data.get("nic3_name"):
-            self.log_info(f"  - {data.get('nic3_name')}" + (f" (VLAN: {data.get('nic3_vlan')})" if data.get("nic3_vlan") else ""))
+            self.log_info(
+                f"  - {data.get('nic3_name')}"
+                + (f" (VLAN: {data.get('nic3_vlan')})" if data.get("nic3_vlan") else "")
+            )
 
         if disks:
             self.log_info("Disks:")
             for d in disks:
-                # d.size is MB; convert back to GB for display
                 gb = int(d.size / 1024) if commit else "?"
                 self.log_info(f"  - {d.name}: {gb} GB")
 
