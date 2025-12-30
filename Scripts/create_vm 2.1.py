@@ -39,7 +39,7 @@ from virtualization.models import Cluster, VirtualMachine, VMInterface, VirtualD
 
 class NewVM(Script):
     class Meta:
-        name = "New VMv2.1"
+        name = "New VM 2.1"
         description = "Create a new VM with optional NICs/VLANs/disks and auto-allocate IPv4 from a Prefix or IP Range"
 
     #
