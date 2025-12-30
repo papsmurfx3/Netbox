@@ -12,7 +12,8 @@ from extras.scripts import Script, StringVar, IPAddressWithMaskVar, ObjectVar, M
 class NewVM(Script):
 
     class Meta:
-        name = "New VM"
+        name = "New VMv2.1
+       "
         description = "Create a new VM"
 
     # Form fields you’ll see on the “one screen”
