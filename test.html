@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>RJ45 (CSS, white interior)</title>
+
+  <style>
+    body {
+      padding: 40px;
+      background: #fff;
+    }
+
+    /* RJ45 outer frame */
+    .rj45 {
+      width: 28px;
+      height: 20px;
+      border: 1px solid black;
+      box-sizing: border-box;
+      background: #fff;
+      position: relative;
+    }
+
+    /* Top lip (small inset ledge) */
+    .rj45::before {
+      content: "";
+      position: absolute;
+      left: 5px;
+      right: 5px;
+      top: 3px;
+      height: 4px;
+      border: 1px solid rgba(0,0,0,0.35);
+      box-sizing: border-box;
+      background: #fff;
+    }
+
+    /* Inner cavity (now WHITE) */
+    .rj45::after {
+      content: "";
+      position: absolute;
+      left: 4px;
+      right: 4px;
+      top: 7px;
+      bottom: 3px;
+      border: 1px solid rgba(0,0,0,0.35);
+      box-sizing: border-box;
+      background: #fff; /* <-- white interior */
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="rj45"></div>
+
+</body>
+</html>
