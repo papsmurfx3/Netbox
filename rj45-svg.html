@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>SVG RJ45</title>
+</head>
+<body style="padding:30px; font-family:Arial;">
+
+<svg width="90" height="60" viewBox="0 0 90 60" aria-label="RJ45 socket">
+  <!-- outer frame -->
+  <rect x="5" y="5" width="80" height="50" fill="#fff" stroke="#000" stroke-width="2"/>
+
+  <!-- inner cavity -->
+  <path d="M20 22
+           H70
+           V48
+           H20
+           Z"
+        fill="#222" stroke="#000" stroke-width="2"/>
+
+  <!-- top lip / step -->
+  <path d="M28 12
+           H62
+           V22
+           H28
+           Z"
+        fill="#222" stroke="#000" stroke-width="2"/>
+
+  <!-- little side notches -->
+  <rect x="16" y="28" width="4" height="10" fill="#bbb" stroke="#000" stroke-width="1"/>
+  <rect x="70" y="28" width="4" height="10" fill="#bbb" stroke="#000" stroke-width="1"/>
+
+  <!-- pins -->
+  <g>
+    <!-- 8 pins -->
+    <rect x="28" y="34" width="3" height="10" fill="#eee"/>
+    <rect x="33" y="34" width="3" height="10" fill="#eee"/>
+    <rect x="38" y="34" width="3" height="10" fill="#eee"/>
+    <rect x="43" y="34" width="3" height="10" fill="#eee"/>
+    <rect x="48" y="34" width="3" height="10" fill="#eee"/>
+    <rect x="53" y="34" width="3" height="10" fill="#eee"/>
+    <rect x="58" y="34" width="3" height="10" fill="#eee"/>
+    <rect x="63" y="34" width="3" height="10" fill="#eee"/>
+  </g>
+</svg>
+
+</body>
+</html>
