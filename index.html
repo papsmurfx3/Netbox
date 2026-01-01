@@ -52,7 +52,7 @@
          ========================================================= */
 
       /* overall footprint of the console area */
-      --console-w: 46px;
+      --console-w: 30px;
 
       /* Where the console area starts relative to port holes */
       --console-y: calc(var(--label-font) + var(--label-gap));
@@ -103,6 +103,9 @@
     .console-area{
       position: relative;
       width: var(--console-w);
+	  margin-left: -6px;
+
+
 
       /* Align console block with the top of port holes */
       margin-top: var(--console-y);
