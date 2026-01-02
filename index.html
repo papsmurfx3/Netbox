@@ -52,13 +52,13 @@
          ========================================================= */
 
       /* overall footprint of the console area */
-      --console-w: 30px;
+      --console-w: 46px;
 
       /* Where the console area starts relative to port holes */
       --console-y: calc(var(--label-font) + var(--label-gap));
 
       /* mini/micro USB: higher + offset right */
-      --micro-w: 22px;
+      --micro-w: 18px;
       --micro-h: 9px;
       --micro-offset-x: 14px;   /* push right so it isn't aligned */
       --micro-offset-y: -10px;  /* push up toward top edge */
@@ -209,9 +209,9 @@
       height: 100%;
     }
 
-    .row.bottom{
+    /*.row.bottom{
       border-top: var(--border-width) var(--border-style) var(--border-color);
-    }
+    } */
 
     .portcell{
       width: var(--rj45-w);
@@ -248,7 +248,7 @@
     }
 
     .row.top .port{ border-bottom: 0; }
-    .row.bottom .port{ border-top: 0; }
+    /*.row.bottom .port{ border-top: 0; } */
 
     .portcell.bottom .label { order: 2; }
     .portcell.bottom .port  { order: 1; }
@@ -321,22 +321,66 @@
 
     .sfp-port.active{ background: #39d353; }
     .sfp-port.inactive{ background: #cfcfcf; }
+	
+	/* === Console icons (SVG) — no layout shift, clear symbols === */
+
+	/* Keep console rows from affecting overall console width */
+	.console-item{
+	position: relative;   /* keeps SVG positioning working */
+	display: flex;        /* lays out icon + port cleanly */
+	align-items: center;  /* vertical centering */
+	gap: 1px;             /* space between icon and port */
+	}
+
+
+
+	/* Make the icon span real and visible */
+	.console-icon{
+	width: 12px;
+	height: 12px;
+	display: inline-block;
+	vertical-align: middle;
+	margin-right: 4px;
+	background-repeat: no-repeat;
+	background-position: center;
+	background-size: contain;
+	}
+
+	/* Ethernet / LAN icon */
+	.console-icon-rj45{
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='5' r='2'/%3E%3Ccircle cx='5' cy='19' r='2'/%3E%3Ccircle cx='19' cy='19' r='2'/%3E%3Cpath d='M12 7v4M12 11L5 17M12 11l7 6'/%3E%3C/g%3E%3C/svg%3E");
+	}
+
+	/* USB trident icon (clearer/thicker than before) */
+	.console-icon-usb{
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22V4'/%3E%3Cpath d='M12 4l3 3'/%3E%3Cpath d='M12 4l-3 3'/%3E%3Cpath d='M12 12h6'/%3E%3Ccircle cx='20' cy='12' r='1.5'/%3E%3Cpath d='M12 16h-4'/%3E%3Crect x='6' y='15' width='3' height='3'/%3E%3C/g%3E%3C/svg%3E");
+	}
+
   </style>
 </head>
 
 <body>
 
   <div class="switch-chassis">
-    <div class="port-field">e
+    <div class="port-field">
 
       <!-- LEFT: Console ports (ONLY this area changed) -->
       <div class="console-area" aria-label="Console ports">
         <div class="micro-usb" title="USB console (mini/micro)"></div>
 
         <div class="console-stack">
-          <div class="console-port console-usba" title="USB Type-A"></div>
-		  <div class="console-port console-rj45" title="RJ45 console"></div>
-        </div>
+			<div class="console-item">
+			<span class="console-icon console-icon-rj45" aria-hidden="true"></span>
+			<div class="console-port console-rj45" title="RJ45 console"></div>
+			</div>
+			<div class="console-item">
+			<span class="console-icon console-icon-usb" aria-hidden="true"></span>
+			<div class="console-port console-usba" title="USB Type-A"></div>
+			</div>
+		</div>
+		
+	</div>
+
       </div>
 
       <!-- MAIN: 48 RJ45 ports (unchanged) -->
