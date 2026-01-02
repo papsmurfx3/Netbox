@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ruckus ICX 7250-48P Front Panel (Layout)</title>
+
+  <style>
+    :root{
+      --border: #000;
+      --bg: #fff;
+
+      --chassis-pad: 10px;
+      --chassis-border: 2px solid var(--border);
+
+      /* MAIN 48 RJ45 port hole size (UNCHANGED) */
+      --rj45-w: 28px;
+      --rj45-h: 20px;
+
+      /* RIGHT 8 SFP port hole size (UNCHANGED) */
+      --sfp-w: 30px;
+      --sfp-h: 20px;
+
+      /* Labels */
+      --label-font: 11px;
+      --label-gap: 2px;
+	  
+      --console-stack-offset-y: 8px; /* moves USB+console stack up/down */
+
+
+      /* Borders */
+      --border-width: 1px;
+      --border-style: solid;
+      --border-color: var(--border);
+
+      /* Grouping (UNCHANGED) */
+      --group-gap: 3px;
+      --port-gap: 0px;
+
+      /* Spacing between major sections */
+      --section-gap: 14px;
+      --main-gap: 18px;
+
+      /* Row seam */
+      --row-gap: 0px;
+
+	  --shift-24: calc(12 * var(--rj45-w) + 2 * var(--group-gap));
+
+      /* =========================================================
+         CONSOLE / IO (ONLY this section changes)
+         Match your close-up image:
+         - mini USB higher & offset
+         - RJ45 console stacked above USB-A
+         ========================================================= */
+
+      /* overall footprint of the console area */
+      --console-w: 46px;
+	  
+      /* Where the console area starts relative to port holes */
+      --console-y: calc(var(--label-font) + var(--label-gap));
+
+      /* mini/micro USB: higher + offset right */
+      --micro-w: 18px;
+      --micro-h: 9px;
+      --micro-offset-x: 14px;   /* push right so it isn't aligned */
+      --micro-offset-y: -10px;  /* push up toward top edge */
+
+      /* RJ45 console (small, but RJ45-ish) */
+      --c-rj45-w: 28px;
+      --c-rj45-h: 20px;
+
+      /* USB-A (smaller) */
+      --c-usba-w: 28px;
+      --c-usba-h: 12px;
+
+      /* vertical gap between RJ45 console and USB-A */
+      --console-inner-gap: 1px;
+    }
+
+    body{
+      margin: 24px;
+      background: var(--bg);
+      font-family: Arial, Helvetica, sans-serif;
+      color: #111;
+    }
+
+    .switch-chassis{
+      border: var(--chassis-border);
+      padding: var(--chassis-pad);
+      display: inline-flex;
+      align-items: flex-start;
+      gap: var(--section-gap);
+      background: transparent;
+    }
+
+    .port-field{
+      display: inline-flex;
+      align-items: flex-start;
+      gap: var(--main-gap);
+    }
+
+
+    /* =========================================================
+       CONSOLE AREA (positioned to mimic photo)
+       ========================================================= */
+    .console-area{
+      position: relative;
+      width: var(--console-w);
+	  margin-left: -6px;
+	transform: translateX(var(--shift-24));
+
+
+      /* Align console block with the top of port holes */
+      margin-top: var(--console-y);
+    }
+
+    /* mini/micro USB is positioned independently (not aligned) */
+    .micro-usb{
+      position: absolute;
+      top: var(--micro-offset-y);
+      left: var(--micro-offset-x);
+
+      width: var(--micro-w);
+      height: var(--micro-h);
+
+      border: var(--border-width) var(--border-style) var(--border-color);
+      box-sizing: border-box;
+      background: #fff;
+      border-radius: 2px;
+    }
+
+    .micro-usb::after{
+      content:"";
+      position:absolute;
+      left: 4px; right: 4px;
+      top: 3px; bottom: 3px;
+      border: 1px solid rgba(0,0,0,0.35);
+      box-sizing: border-box;
+      border-radius: 2px;
+    }
+
+    /* RJ45 + USB-A stack */
+    .console-stack{
+      display: grid;
+      grid-template-rows: auto auto;
+      gap: var(--console-inner-gap);
+      justify-items: center;
+      width: var(--console-w);
+	  margin-top: var(--console-stack-offset-y); 
+    }
+
+    .console-port{
+      border: var(--border-width) var(--border-style) var(--border-color);
+      box-sizing: border-box;
+      background: #fff;
+      position: relative;
+    }
+
+    /* RJ45 console: inner cutout with thicker "top lip" feel */
+    .console-rj45{
+      width: var(--c-rj45-w);
+      height: var(--c-rj45-h);
+    }
+
+	.console-rj45::after{
+	content:"";
+	position:absolute;
+	left: 4px; right: 4px;
+	top: 4px; bottom: 4px;
+	border: 1px solid rgba(0,0,0,0.30);
+	box-sizing: border-box;
+	}	
+
+
+    /* USB-A: simple inner cutout */
+    .console-usba{
+      width: var(--c-usba-w);
+      height: var(--c-usba-h);
+    }
+
+    .console-usba::after{
+      content:"";
+      position:absolute;
+      left: 3px; right: 3px;
+      top: 3px; bottom: 3px;
+      border: 1px solid rgba(0,0,0,0.30);
+      box-sizing: border-box;
+    }
+
+    /* =========================================================
+       48 RJ45 PORT BLOCK (UNCHANGED)
+       ========================================================= */
+    .block-48{
+      display: grid;
+      grid-template-rows: auto auto;
+      gap: var(--row-gap);
+    }
+
+    .row{
+      display: grid;
+      grid-template-columns:
+        repeat(6, var(--rj45-w)) var(--group-gap)
+        repeat(6, var(--rj45-w)) var(--group-gap)
+        repeat(6, var(--rj45-w)) var(--group-gap)
+        repeat(6, var(--rj45-w));
+      gap: var(--port-gap);
+      align-items: start;
+    }
+
+    .spacer{
+      width: var(--group-gap);
+      height: 100%;
+    }
+
+    /*.row.bottom{
+      border-top: var(--border-width) var(--border-style) var(--border-color);
+    } */
+
+    .portcell{
+      width: var(--rj45-w);
+      display: grid;
+      grid-template-rows: auto auto;
+      gap: var(--label-gap);
+      justify-items: center;
+      user-select: none;
+    }
+
+    .label{
+      font-size: var(--label-font);
+      line-height: 1;
+      color: #000;
+      white-space: nowrap;
+    }
+
+    .port{
+      width: var(--rj45-w);
+      height: var(--rj45-h);
+      box-sizing: border-box;
+      background: #fff;
+      border: var(--border-width) var(--border-style) var(--border-color);
+      position: relative;
+    }
+
+	/* --- 24-port layout: blank cells to keep full 48-port width --- */
+	.portcell.blank .label { visibility: hidden; }
+	.portcell.blank .port  { visibility: hidden; }
+
+    .port::after{
+      content:"";
+      position:absolute;
+      left: 4px; right: 4px;
+      top: 4px; bottom: 4px;
+      border: 1px solid rgba(0,0,0,0.30);
+      box-sizing: border-box;
+    }
+
+    .row.top .port{ border-bottom: 0; }
+    /*.row.bottom .port{ border-top: 0; } */
+
+    .portcell.bottom .label { order: 2; }
+    .portcell.bottom .port  { order: 1; }
+
+    .port.active{ background: #39d353; }
+    .port.inactive{ background: #cfcfcf; }
+
+    /* =========================================================
+       INTERNAL DIVIDER (UNCHANGED)
+       ========================================================= */
+    .divider{
+      width: 0;
+      border-left: 2px dotted #000;
+      align-self: stretch;
+      margin: 0 2px;
+    }
+
+    /* =========================================================
+       SFP / UPLINK BLOCK (UNCHANGED)
+       ========================================================= */
+    .sfp-block{
+      display: grid;
+      grid-template-rows: auto auto;
+      gap: var(--row-gap);
+    }
+
+    .sfp-row{
+      display: grid;
+      grid-template-columns: repeat(4, var(--sfp-w));
+      gap: 0px;
+      align-items: start;
+    }
+
+    .sfp-row.bottom{
+      border-top: var(--border-width) var(--border-style) var(--border-color);
+    }
+
+    .sfp-cell{
+      width: var(--sfp-w);
+      display: grid;
+      grid-template-rows: auto auto;
+      gap: var(--label-gap);
+      justify-items: center;
+      user-select: none;
+    }
+
+    .sfp-port{
+      width: var(--sfp-w);
+      height: var(--sfp-h);
+      box-sizing: border-box;
+      background: #fff;
+      border: var(--border-width) var(--border-style) var(--border-color);
+      position: relative;
+    }
+
+    .sfp-port::after{
+      content:"";
+      position:absolute;
+      left: 4px; right: 4px;
+      top: 4px; bottom: 4px;
+      border: 1px solid rgba(0,0,0,0.30);
+      box-sizing: border-box;
+    }
+
+    .sfp-row.top .sfp-port{ border-bottom: 0; }
+    .sfp-row.bottom .sfp-port{ border-top: 0; }
+
+    .sfp-cell.bottom .label { order: 2; }
+    .sfp-cell.bottom .sfp-port { order: 1; }
+
+    .sfp-port.active{ background: #39d353; }
+    .sfp-port.inactive{ background: #cfcfcf; }
+	
+	/* === Console icons (SVG) — no layout shift, clear symbols === */
+
+	/* Keep console rows from affecting overall console width */
+	.console-item{
+	position: relative;   /* keeps SVG positioning working */
+	display: flex;        /* lays out icon + port cleanly */
+	align-items: center;  /* vertical centering */
+	gap: 1px;             /* space between icon and port */
+	}
+
+
+
+	/* Make the icon span real and visible */
+	.console-icon{
+	width: 12px;
+	height: 12px;
+	display: inline-block;
+	vertical-align: middle;
+	margin-right: 4px;
+	background-repeat: no-repeat;
+	background-position: center;
+	background-size: contain;
+	}
+
+	/* Ethernet / LAN icon */
+	.console-icon-rj45{
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='5' r='2'/%3E%3Ccircle cx='5' cy='19' r='2'/%3E%3Ccircle cx='19' cy='19' r='2'/%3E%3Cpath d='M12 7v4M12 11L5 17M12 11l7 6'/%3E%3C/g%3E%3C/svg%3E");
+	}
+
+	/* USB trident icon (clearer/thicker than before) */
+	.console-icon-usb{
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22V4'/%3E%3Cpath d='M12 4l3 3'/%3E%3Cpath d='M12 4l-3 3'/%3E%3Cpath d='M12 12h6'/%3E%3Ccircle cx='20' cy='12' r='1.5'/%3E%3Cpath d='M12 16h-4'/%3E%3Crect x='6' y='15' width='3' height='3'/%3E%3C/g%3E%3C/svg%3E");
+	}
+
+  </style>
+</head>
+
+<body>
+
+  <div class="switch-chassis">
+    <div class="port-field">
+
+      <!-- LEFT: Console ports (ONLY this area changed) -->
+      <div class="console-area" aria-label="Console ports">
+        <div class="micro-usb" title="USB console (mini/micro)"></div>
+
+        <div class="console-stack">
+			<div class="console-item">
+			<span class="console-icon console-icon-rj45" aria-hidden="true"></span>
+			<div class="console-port console-rj45" title="RJ45 console"></div>
+			</div>
+			<div class="console-item">
+			<span class="console-icon console-icon-usb" aria-hidden="true"></span>
+			<div class="console-port console-usba" title="USB Type-A"></div>
+			</div>
+		</div>
+		
+	</div>
+
+      </div>
+
+      <!-- MAIN: 48 RJ45 ports (unchanged) -->
+      <div class="block-48" id="block48"></div>
+
+      <div class="divider" aria-hidden="true"></div>
+
+      <!-- RIGHT: 8 SFP uplinks (unchanged) -->
+      <div class="sfp-block" id="sfpBlock"></div>
+
+    </div>
+  </div>
+
+  <script>
+    function makeSpacer(){
+      const s = document.createElement('div');
+      s.className = 'spacer';
+      return s;
+    }
+
+    function makeRj45Cell(labelText, portNumber, labelBelow){
+      const cell = document.createElement('div');
+      cell.className = 'portcell';
+      if (labelBelow) cell.classList.add('bottom');
+
+      const label = document.createElement('div');
+      label.className = 'label';
+      label.textContent = labelText;
+
+      const port = document.createElement('div');
+      port.className = 'port inactive';
+      port.dataset.port = String(portNumber);
+
+      cell.appendChild(label);
+      cell.appendChild(port);
+      return cell;
+    }
+
+	function makeBlankRj45Cell(labelBelow){
+	const cell = makeRj45Cell("", "", labelBelow);
+	cell.classList.add("blank");
+	return cell;
+}
+
+    function addRj45Range(rowEl, start, end, step, labelBelow){
+      for (let n = start; n <= end; n += step) {
+        rowEl.appendChild(makeRj45Cell(String(n), n, labelBelow));
+      }
+    }
+
+    function makeSfpCell(labelText, key, labelBelow){
+      const cell = document.createElement('div');
+      cell.className = 'sfp-cell';
+      if (labelBelow) cell.classList.add('bottom');
+
+      const label = document.createElement('div');
+      label.className = 'label';
+      label.textContent = labelText;
+
+      const port = document.createElement('div');
+      port.className = 'sfp-port inactive';
+      port.dataset.uplink = key;
+
+      cell.appendChild(label);
+      cell.appendChild(port);
+      return cell;
+    }
+
+    /* Build 48 ports */
+    const block48 = document.getElementById('block48');
+
+    const topRow = document.createElement('div');
+    topRow.className = 'row top';
+
+	// blanks for missing ports 25–48 (left half of the face)
+	for (let i = 0; i < 6; i++) topRow.appendChild(makeBlankRj45Cell(false));
+	topRow.appendChild(makeSpacer());
+	for (let i = 0; i < 6; i++) topRow.appendChild(makeBlankRj45Cell(false));
+	topRow.appendChild(makeSpacer());
+
+	// actual ports 1–24 placed in the right half
+	addRj45Range(topRow,  1, 11, 2, false); topRow.appendChild(makeSpacer());
+	addRj45Range(topRow, 13, 23, 2, false);
+
+
+    const bottomRow = document.createElement('div');
+    bottomRow.className = 'row bottom';
+
+	// blanks for missing ports 25–48 (left half of the face)
+	for (let i = 0; i < 6; i++) bottomRow.appendChild(makeBlankRj45Cell(true));
+	bottomRow.appendChild(makeSpacer());
+	for (let i = 0; i < 6; i++) bottomRow.appendChild(makeBlankRj45Cell(true));
+	bottomRow.appendChild(makeSpacer());
+
+	// actual ports 1–24 placed in the right half
+	addRj45Range(bottomRow,  2, 12, 2, true); bottomRow.appendChild(makeSpacer());
+	addRj45Range(bottomRow, 14, 24, 2, true);
+
+
+    block48.appendChild(topRow);
+    block48.appendChild(bottomRow);
+
+    /* Build SFP block */
+    const sfpBlock = document.getElementById('sfpBlock');
+
+    const sfpTop = document.createElement('div');
+    sfpTop.className = 'sfp-row top';
+    ['x1','x3','x5','x7'].forEach(x => sfpTop.appendChild(makeSfpCell(x, x, false)));
+
+    const sfpBottom = document.createElement('div');
+    sfpBottom.className = 'sfp-row bottom';
+    ['x2','x4','x6','x8'].forEach(x => sfpBottom.appendChild(makeSfpCell(x, x, true)));
+
+    sfpBlock.appendChild(sfpTop);
+    sfpBlock.appendChild(sfpBottom);
+  </script>
+
+</body>
+</html>
