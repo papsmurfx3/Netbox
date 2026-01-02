@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Switch Front Panel (Template - mod4)</title>
+  <link rel="stylesheet" href="./base-switch.mod4.css" />
+</head>
+<body>
+  <div class="switch-chassis">
+    <div class="port-field">
+      <div class="console-area" aria-label="Console ports">
+        <div class="micro-usb" title="USB console (mini/micro)"></div>
+        <div class="console-stack">
+          <div class="console-item">
+            <span class="console-icon console-icon-rj45" aria-hidden="true"></span>
+            <div class="console-port console-rj45" title="RJ45 console"></div>
+          </div>
+          <div class="console-item">
+            <span class="console-icon console-icon-usb" aria-hidden="true"></span>
+            <div class="console-port console-usba" title="USB Type-A"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rj45-block" id="rj45Block"></div>
+      <div class="divider" aria-hidden="true"></div>
+      <div class="sfp-block" id="sfpBlock"></div>
+    </div>
+  </div>
+
+  <script src="./base-switch.mod4.js"></script>
+  <script>
+    initSwitchLayout({
+      title: "Switch Front Panel (Template - mod4)",
+
+      // RJ45 port count
+      portCount: 48,
+
+      // Grouping across BOTH rows (ports per group). Examples:
+      //  - gaps every 12 ports: [12,12,12,12]  (default)
+      //  - gaps every 16 ports: [16,16,16]
+      rj45GroupPorts: [12,12,12,12],
+
+      // Optional: pad left with blank ports (counted as ports across both rows) to right-justify.
+      // Example: for a 24-port switch inside a 48-wide face: padLeftPorts: 24
+      padLeftPorts: 0,
+
+      // Uplinks
+      uplinkLabels: ["x1","x2","x3","x4"],
+
+      // true => split into 2 rows (odd/even labels)
+      // false => one row
+      splitOddEven: true
+    });
+  </script>
+</body>
+</html>
