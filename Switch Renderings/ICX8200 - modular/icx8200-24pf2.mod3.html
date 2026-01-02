@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ruckus ICX8200-24PF2 Front Panel (Layout)</title>
+  <link rel="stylesheet" href="./base-switch.mod3.css" />
+</head>
+
+<body>
+  <div class="switch-chassis">
+    <div class="port-field">
+
+      <div class="console-area" aria-label="Console ports">
+        <div class="micro-usb" title="USB console (mini/micro)"></div>
+
+        <div class="console-stack">
+          <div class="console-item">
+            <span class="console-icon console-icon-rj45" aria-hidden="true"></span>
+            <div class="console-port console-rj45" title="RJ45 console"></div>
+          </div>
+          <div class="console-item">
+            <span class="console-icon console-icon-usb" aria-hidden="true"></span>
+            <div class="console-port console-usba" title="USB Type-A"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rj45-block" id="rj45Block"></div>
+      <div class="divider" aria-hidden="true"></div>
+      <div class="sfp-block" id="sfpBlock"></div>
+
+    </div>
+  </div>
+
+  <script src="./base-switch.mod3.js"></script>
+  <script>
+    initSwitchLayout({
+      title: "Ruckus ICX8200-24PF2 Front Panel (Layout)",
+      portCount: 24,
+      uplinkLabels: ["x1","x2","x3","x4"],
+      splitOddEven: true,
+      padGroupsLeft: 2   // <-- key: pushes RJ45 ports right next to uplinks
+    });
+  </script>
+</body>
+</html>
