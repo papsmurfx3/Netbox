@@ -53,8 +53,6 @@
 
       /* overall footprint of the console area */
       --console-w: 46px;
-	  
-	  --shift-24: calc(12 * var(--rj45-w) + 2 * var(--group-gap));
 
       /* Where the console area starts relative to port holes */
       --console-y: calc(var(--label-font) + var(--label-gap));
@@ -99,20 +97,15 @@
       gap: var(--main-gap);
     }
 
-/* Left blank area for 24-port version (same width as missing 24 ports) */
-.left-blank-24{
-  width: calc(12 * var(--rj45-w) + 2 * var(--group-gap)); /* 12 port holes + 2 group seams */
-  height: 1px; /* doesn't matter; just holds horizontal space */
-  flex: 0 0 auto;
-}
-
     /* =========================================================
        CONSOLE AREA (positioned to mimic photo)
        ========================================================= */
     .console-area{
       position: relative;
       width: var(--console-w);
-	  margin-left: calc(-6px + var(--shift-24));
+	  margin-left: -6px;
+
+
 
       /* Align console block with the top of port holes */
       margin-top: var(--console-y);
@@ -244,10 +237,6 @@
       border: var(--border-width) var(--border-style) var(--border-color);
       position: relative;
     }
-
-	/* --- 24-port layout: blank cells to keep full 48-port width --- */
-	.portcell.blank .label { visibility: hidden; }
-	.portcell.blank .port  { visibility: hidden; }
 
     .port::after{
       content:"";
@@ -430,12 +419,6 @@
       return cell;
     }
 
-	function makeBlankRj45Cell(labelBelow){
-	const cell = makeRj45Cell("", "", labelBelow);
-	cell.classList.add("blank");
-	return cell;
-}
-
     function addRj45Range(rowEl, start, end, step, labelBelow){
       for (let n = start; n <= end; n += step) {
         rowEl.appendChild(makeRj45Cell(String(n), n, labelBelow));
@@ -466,30 +449,18 @@
     const topRow = document.createElement('div');
     topRow.className = 'row top';
 
-	// blanks for missing ports 25–48 (left half of the face)
-	for (let i = 0; i < 6; i++) topRow.appendChild(makeBlankRj45Cell(false));
-	topRow.appendChild(makeSpacer());
-	for (let i = 0; i < 6; i++) topRow.appendChild(makeBlankRj45Cell(false));
-	topRow.appendChild(makeSpacer());
-
-	// actual ports 1–24 placed in the right half
-	addRj45Range(topRow,  1, 11, 2, false); topRow.appendChild(makeSpacer());
-	addRj45Range(topRow, 13, 23, 2, false);
-
+    addRj45Range(topRow,  1, 11, 2, false); topRow.appendChild(makeSpacer());
+    addRj45Range(topRow, 13, 23, 2, false); topRow.appendChild(makeSpacer());
+    addRj45Range(topRow, 25, 35, 2, false); topRow.appendChild(makeSpacer());
+    addRj45Range(topRow, 37, 47, 2, false);
 
     const bottomRow = document.createElement('div');
     bottomRow.className = 'row bottom';
 
-	// blanks for missing ports 25–48 (left half of the face)
-	for (let i = 0; i < 6; i++) bottomRow.appendChild(makeBlankRj45Cell(true));
-	bottomRow.appendChild(makeSpacer());
-	for (let i = 0; i < 6; i++) bottomRow.appendChild(makeBlankRj45Cell(true));
-	bottomRow.appendChild(makeSpacer());
-
-	// actual ports 1–24 placed in the right half
-	addRj45Range(bottomRow,  2, 12, 2, true); bottomRow.appendChild(makeSpacer());
-	addRj45Range(bottomRow, 14, 24, 2, true);
-
+    addRj45Range(bottomRow,  2, 12, 2, true); bottomRow.appendChild(makeSpacer());
+    addRj45Range(bottomRow, 14, 24, 2, true); bottomRow.appendChild(makeSpacer());
+    addRj45Range(bottomRow, 26, 36, 2, true); bottomRow.appendChild(makeSpacer());
+    addRj45Range(bottomRow, 38, 48, 2, true);
 
     block48.appendChild(topRow);
     block48.appendChild(bottomRow);
