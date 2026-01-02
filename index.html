@@ -44,6 +44,8 @@
       /* Row seam */
       --row-gap: 0px;
 
+	  --shift-24: calc(12 * var(--rj45-w) + 2 * var(--group-gap));
+
       /* =========================================================
          CONSOLE / IO (ONLY this section changes)
          Match your close-up image:
@@ -54,8 +56,6 @@
       /* overall footprint of the console area */
       --console-w: 46px;
 	  
-	  --shift-24: calc(12 * var(--rj45-w) + 2 * var(--group-gap));
-
       /* Where the console area starts relative to port holes */
       --console-y: calc(var(--label-font) + var(--label-gap));
 
@@ -99,12 +99,6 @@
       gap: var(--main-gap);
     }
 
-/* Left blank area for 24-port version (same width as missing 24 ports) */
-.left-blank-24{
-  width: calc(12 * var(--rj45-w) + 2 * var(--group-gap)); /* 12 port holes + 2 group seams */
-  height: 1px; /* doesn't matter; just holds horizontal space */
-  flex: 0 0 auto;
-}
 
     /* =========================================================
        CONSOLE AREA (positioned to mimic photo)
@@ -112,7 +106,9 @@
     .console-area{
       position: relative;
       width: var(--console-w);
-	  margin-left: calc(-6px + var(--shift-24));
+	  margin-left: -6px;
+	transform: translateX(var(--shift-24));
+
 
       /* Align console block with the top of port holes */
       margin-top: var(--console-y);
