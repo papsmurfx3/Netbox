@@ -1,119 +1,89 @@
-from extras.scripts import Script, MultiObjectVar, BooleanVar
-from dcim.models import Device, ModuleBay
+from extras.scripts import Script, ObjectVar, BooleanVar
+from dcim.models import DeviceType, Device, ModuleBay
 
-class FixModuleBayPositions(Script):
+class FixModuleBayPositionsByDeviceType(Script):
     class Meta:
-        name = "Fix Module Bay Positions (Bulk)"
+        name = "Fix Module Bay Positions by DeviceType"
         description = (
-            "Populate missing ModuleBay.position values on existing devices.\n"
-            "Required for ModuleType placeholder {module} to work when installing modules."
+            "Populate missing ModuleBay.position values for ALL devices of a selected DeviceType.\n"
+            "Intended for bays named A, B, C... so ModuleType placeholder {module} works."
         )
-        commit_default = False  # default to dry-run unless user commits
+        commit_default = False  # start in dry-run mode
 
-    devices = MultiObjectVar(
-        model=Device,
-        required=False,
-        description=(
-            "Optional: choose specific devices. If empty, script will process ALL devices.\n"
-            "Recommendation: start with 1-2 devices as a test."
-        ),
+    device_type = ObjectVar(
+        model=DeviceType,
+        required=True,
+        description="Select the DeviceType to target (e.g., 'Opticom FMD1 (Legacy 3-Port)').",
     )
 
     only_missing = BooleanVar(
         required=False,
         default=True,
-        description="If checked, update ONLY bays where position is currently blank/null (recommended).",
+        description="Only set position where it is currently blank/null (recommended).",
     )
 
     def run(self, data, commit):
 
-        # Panduit-style bay naming often skips 'I'. Customize if your bays differ.
-        # If your bays are numeric already (1..12), the script will use that too.
-        letter_order = ["A", "B", "C", "D", "E", "F", "G", "H", "J", "K", "L", "M", "N", "O", "P", "Q",
-                        "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
+        # Map bay letters to numeric positions (supports A..Z; commonly panels skip I, but include it here)
+        letter_order = ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"]
         letter_map = {letter: idx + 1 for idx, letter in enumerate(letter_order)}
 
-        # Decide device scope
-        selected_devices = data.get("devices")
-        if selected_devices:
-            device_qs = Device.objects.filter(pk__in=[d.pk for d in selected_devices])
-            self.log_info(f"Processing {device_qs.count()} selected device(s).")
-        else:
-            device_qs = Device.objects.all()
-            self.log_info(f"No devices selected; processing ALL devices ({device_qs.count()}).")
+        dt = data["device_type"]
+        devices = Device.objects.filter(device_type=dt)
 
-        changed = 0
+        self.log_info(f"DeviceType: {dt.manufacturer.name} {dt.model}")
+        self.log_info(f"Devices found: {devices.count()}")
+
+        if devices.count() == 0:
+            self.log_warning("No devices found for this DeviceType. Nothing to do.")
+            return "No devices processed"
+
+        bays = ModuleBay.objects.filter(device__in=devices).select_related("device")
+
+        if data.get("only_missing", True):
+            # cover both NULL and empty string
+            bays = bays.filter(position__isnull=True) | bays.filter(position="")
+
+        self.log_info(f"Module bays in scope (missing positions): {bays.count()}")
+
+        updated = 0
         skipped = 0
         warned = 0
 
-        # Pre-filter bays for performance
-        bay_qs = ModuleBay.objects.filter(device__in=device_qs).select_related("device")
+        for bay in bays:
+            bay_name = (bay.name or "").strip().upper()
 
-        if data.get("only_missing", True):
-            # Position may be NULL or empty string depending on data history
-            bay_qs = bay_qs.filter(position__isnull=True) | bay_qs.filter(position="")
-
-        total = bay_qs.count()
-        self.log_info(f"Module bays in scope: {total}")
-
-        for bay in bay_qs:
-            current_pos = bay.position
-
-            # If only_missing isn't set, we still avoid overwriting a valid position
-            if current_pos not in (None, ""):
-                skipped += 1
-                continue
-
-            # Derive a position from bay.name or bay.label
-            # Priority: numeric -> letter map -> skip with warning
-            name = (bay.name or "").strip()
-            label = (bay.label or "").strip() if hasattr(bay, "label") else ""
-
-            derived_pos = None
-
-            # 1) numeric bay name like "1", "2", ...
-            if name.isdigit():
-                derived_pos = int(name)
-
-            # 2) numeric label like "1"
-            elif label.isdigit():
-                derived_pos = int(label)
-
-            # 3) letter bay name like "A", "B", ...
-            elif name.upper() in letter_map:
-                derived_pos = letter_map[name.upper()]
-
-            # 4) letter label like "A"
-            elif label.upper() in letter_map:
-                derived_pos = letter_map[label.upper()]
-
-            if derived_pos is None:
+            if bay_name not in letter_map:
                 warned += 1
                 self.log_warning(
-                    f"SKIP: Device={bay.device.name} | ModuleBay='{bay.name}' (label='{label}') "
-                    f"has no numeric/recognized letter to derive a position."
+                    f"SKIP: Device={bay.device.name} | ModuleBay name='{bay.name}' "
+                    f"not a simple letter A-Z; cannot derive position."
                 )
                 continue
 
-            # Apply
-            bay.position = str(derived_pos)  # NetBox stores position as a string in many cases
+            new_pos = str(letter_map[bay_name])
+
+            # If only_missing=False, still avoid overwriting a filled position unless you want to change that behavior.
+            if bay.position not in (None, ""):
+                skipped += 1
+                continue
+
+            bay.position = new_pos
             bay.save()
 
-            changed += 1
+            updated += 1
             self.log_success(
-                f"UPDATED: Device={bay.device.name} | ModuleBay='{bay.name}' (label='{label}') "
-                f"-> position={bay.position}"
+                f"UPDATED: Device={bay.device.name} | Bay={bay.name} -> position={bay.position}"
             )
 
         self.log_info("Summary:")
-        self.log_info(f"  Updated: {changed}")
-        self.log_info(f"  Skipped: {skipped}")
-        self.log_info(f"  Warnings (could not derive): {warned}")
+        self.log_info(f"  Updated:  {updated}")
+        self.log_info(f"  Skipped:  {skipped}")
+        self.log_info(f"  Warnings: {warned}")
 
         if not commit:
             self.log_warning(
-                "This run may be a DRY RUN depending on the commit toggle. "
-                "If you want changes saved, enable 'Commit changes' when running the script."
+                "Dry-run unless you enabled 'Commit changes' when launching the script."
             )
 
         return "Completed"
