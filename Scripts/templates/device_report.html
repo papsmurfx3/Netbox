@@ -1,0 +1,98 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>{{ device.name }} - Install Report</title>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; margin: 24px; color: #111; }
+    header { text-align: left; margin-bottom: 12px; }
+    h1 { font-size: 20px; margin: 0 0 6px 0; }
+    .meta { border: 1px solid #ccc; padding: 10px; width: 100%; margin-bottom: 12px; }
+    .two-col { display: flex; gap: 20px; }
+    .col { flex: 1; }
+    .rack { border:1px solid #444; width: 220px; padding:6px; text-align: center; }
+    .u-slot { border-bottom:1px solid #ddd; padding:6px; font-size: 11px; }
+    .u-highlight { background: #f0f9ff; border-left:4px solid #0074D9; }
+    table { border-collapse: collapse; width: 100%; margin-top: 8px; }
+    th, td { border: 1px solid #ddd; padding: 8px; font-size: 12px; text-align: left; }
+    th { background: #f7f7f7; font-weight: bold; font-size: 13px; }
+    .connection-box { font-family: monospace; font-size: 12px; margin-top: 6px; white-space: pre; }
+    footer { margin-top: 18px; font-size: 11px; color: #666; }
+    .note { font-size: 12px; color: #333; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Install: {{ device.name }}</h1>
+    <div class="meta">
+      <strong>Model:</strong> {{ device.model }} {% if device.manufacturer %} ({{ device.manufacturer }}) {% endif %} <br/>
+      <strong>Serial:</strong> {{ device.serial or 'N/A' }} <br/>
+      <strong>Site:</strong> {{ rack.site or 'N/A' }} &nbsp; | &nbsp;
+      <strong>Rack:</strong> {{ rack.name or 'N/A' }} &nbsp; | &nbsp;
+      <strong>Position:</strong> {% if rack.position %} U{{ rack.position }} {% else %} N/A {% endif %} {% if rack.face %} ({{ rack.face }}) {% endif %}
+    </div>
+  </header>
+
+  <section>
+    <h2 style="font-size:15px; margin-bottom:6px;">Rack view</h2>
+    <div class="two-col">
+      <div class="col">
+        <div class="rack">
+          <div style="font-size:13px;"><strong>Rack: {{ rack.name or '---' }}</strong></div>
+          {% set u_height = rack.u_height or 42 %}
+          {% for u in range(u_height, 0, -1) %}
+            {% set css = 'u-slot' %}
+            {% if rack.position and u == rack.position %}
+              {% set css = css + ' u-highlight' %}
+            {% endif %}
+            <div class="{{ css }}">U{{ u }}{% if rack.position and u == rack.position %} — {{ device.name }} {% endif %}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="col">
+        <h3 style="margin:0 0 6px 0;">Mounting & Neighbors</h3>
+        <div class="note">
+          Position: {% if rack.position %} U{{ rack.position }} {% else %} n/a {% endif %} <br/>
+          Neighboring units not shown in detail. Confirm physical depth/rail type before mounting.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2 style="font-size:15px; margin-top:14px;">Physical Connections</h2>
+    {% if connections %}
+      <table>
+        <thead><tr><th>Local Interface</th><th>Cable Color</th><th>Remote Device</th><th>Remote Interface</th><th>Remote Rack</th></tr></thead>
+        <tbody>
+          {% for c in connections %}
+            <tr>
+              <td>{{ c.name }}</td>
+              <td>{{ c.cable_color or 'N/A' }}</td>
+              <td>{{ c.remote_device or 'N/A' }}</td>
+              <td>{{ c.remote_interface or 'N/A' }}</td>
+              <td>{{ c.remote_rack or 'N/A' }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <div style="margin-top:12px;">
+        <h3 style="margin:0 0 6px 0;">Connection visual</h3>
+        <div class="connection-box">
+{% for c in connections %}
+{{ device.name }}.{{ c.name }} ({{ c.cable_color or 'color?' }})  ──>  {{ c.remote_device }}  {{ c.remote_interface }}
+{% endfor %}
+        </div>
+      </div>
+    {% else %}
+      <div class="note">No cabled interfaces found for this device in NetBox.</div>
+    {% endif %}
+  </section>
+
+  <footer>
+    Generated from NetBox data. Verify cable colors and rack position before powering on.
+  </footer>
+</body>
+</html>
